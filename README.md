@@ -34,6 +34,7 @@ $ docker run --rm \
   -e AUTH_KEY=kfc \
   -e PORT=8888 \
   -p 8888:8888 \
+  --log-opt mode=non-blocking --log-opt max-buffer-size=4m \
   kiliokuara/vivo50
 ```
 
