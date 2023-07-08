@@ -1,4 +1,4 @@
-# magic-siner-guide
+# magic-signer-guide
 
 此项目用于解决各种 QQ 机器人框的架 sso sign 和 tlv 加密问题。
 
@@ -220,6 +220,11 @@ C2S
   "packetType": "rpc.initialize",
   "extArgs": {
     "KEY_QIMEI36": "", // qimei 36
+    "BOT_PROTOCOL": {
+      "protocolValue": {
+        "ver": "8.9.58",
+      }
+    }
   },
   "device": { // 除特殊标记，参数均为 value.toByteArray().hexString()
     "display": "",
