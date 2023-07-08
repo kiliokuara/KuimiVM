@@ -92,7 +92,7 @@ if (!clientKeySignature.equals(serverKeySignature)) {
 
 ### 2. 与服务端握手
 
-在与服务端握手之前，需要客户端生成一个 16-bit AES 密钥和 4096-bit RSA 密钥对。
+在与服务端握手之前，需要客户端生成一个 16-byte AES 密钥和 4096-bit RSA 密钥对。
 
 * AES 密钥用于加解密握手成功之后的 WebSocket 业务通信。
 * RSA 密钥对用于防止使用 Replay Attacks（重放攻击）再次建立相同的 WebSocket 连接。
