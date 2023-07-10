@@ -29,7 +29,7 @@
 
 ```shell
 $ docker pull kiliokuara/vivo50:latest
-$ docker run --rm -d --restart=always \
+$ docker run -d --restart=always \
   -e SERVER_IDENTITY_KEY=vivo50 \
   -e AUTH_KEY=kfc \
   -e PORT=8888 \
@@ -37,6 +37,7 @@ $ docker run --rm -d --restart=always \
   --log-opt mode=non-blocking --log-opt max-buffer-size=4m \
   -v /home/vivo50/serverData:/app/serverData \
   -v /home/vivo50/testbot:/app/testbot \
+  --name vivo50 \
   kiliokuara/vivo50
 ```
 
