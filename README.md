@@ -1,6 +1,6 @@
 # magic-signer-guide
 
-此项目用于解决各种 QQ 机器人框的架 sso sign 和 tlv 加密问题。
+此项目用于解决各种 QQ 机器人框架的 sso sign 和 tlv 加密问题。
 
 该项目为 RPC 服务后端，并提供 HTTP API，这意味着你可以根据框架的需求实现不同 RPC 客户端。
 
