@@ -38,6 +38,7 @@ $ docker run -d --restart=always \
   -v /home/vivo50/serverData:/app/serverData \
   -v /home/vivo50/testbot:/app/testbot \
   --name vivo50 \
+  --memory 200M \
   kiliokuara/vivo50
 ```
 
@@ -46,6 +47,36 @@ $ docker run -d --restart=always \
 * `SERVER_IDENTITY_KEY`：RPC 服务端身份密钥，用于客户端确认服务端身份。
 * `AUTH_KEY`：RPC 客户端验证密钥，用于服务端确认客户端身份。
 * `PORT`：服务端口，默认 `8888`。
+* `MEMORY_MONITOR`：内存监控器，默认关闭，值为定时器循环周期，单位为秒。
+
+更多详情请参考 https://docs.docker.com/engine/reference/commandline/run/
+
+## 内存使用参考
+
+```
+登录机器人前
+
+2023-07-27 16:29:46 [DEBUG] [Vivo45#1] MemoryDumper -                  committed |  init   |  used   |   max  
+2023-07-27 16:29:46 [DEBUG] [Vivo45#1] MemoryDumper -     Heap Memory:  200.0MB  | 200.0MB | 18.47MB | 200.0MB
+2023-07-27 16:29:46 [DEBUG] [Vivo45#1] MemoryDumper - Non-Heap Memory:  25.25MB  | 7.31MB  | 23.27MB |   -1   
+2023-07-27 16:29:51 [DEBUG] [Vivo45#2] MemoryDumper -                  committed |  init   |  used   |   max  
+2023-07-27 16:29:51 [DEBUG] [Vivo45#2] MemoryDumper -     Heap Memory:  44.0MB   | 200.0MB | 12.08MB | 200.0MB
+2023-07-27 16:29:51 [DEBUG] [Vivo45#2] MemoryDumper - Non-Heap Memory:  25.25MB  | 7.31MB  | 22.17MB |   -1   
+2023-07-27 16:29:56 [DEBUG] [Vivo45#1] MemoryDumper -                  committed |  init   |  used   |   max  
+2023-07-27 16:29:56 [DEBUG] [Vivo45#1] MemoryDumper -     Heap Memory:  44.0MB   | 200.0MB | 11.08MB | 200.0MB
+2023-07-27 16:29:56 [DEBUG] [Vivo45#1] MemoryDumper - Non-Heap Memory:  25.25MB  | 7.31MB  | 21.62MB |   -1   
+
+
+登录一个机器人后
+
+2023-07-27 16:30:41 [DEBUG] [Vivo45#3] MemoryDumper -                  committed |  init   |  used   |   max  
+2023-07-27 16:30:41 [DEBUG] [Vivo45#3] MemoryDumper -     Heap Memory:  52.0MB   | 200.0MB | 33.13MB | 200.0MB
+2023-07-27 16:30:41 [DEBUG] [Vivo45#3] MemoryDumper - Non-Heap Memory:  44.56MB  | 7.31MB  | 41.21MB |   -1   
+2023-07-27 16:30:46 [DEBUG] [Vivo45#3] MemoryDumper -                  committed |  init   |  used   |   max  
+2023-07-27 16:30:46 [DEBUG] [Vivo45#3] MemoryDumper -     Heap Memory:  52.0MB   | 200.0MB | 28.15MB | 200.0MB
+2023-07-27 16:30:46 [DEBUG] [Vivo45#3] MemoryDumper - Non-Heap Memory:  44.56MB  | 7.31MB  | 40.68MB |   -1
+
+```
 
 ## 认证流程
 
