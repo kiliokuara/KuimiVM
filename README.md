@@ -1,3 +1,29 @@
+# Project KuimiVM
+
+你好，这里是 Kilio Kuara。
+
+由于各方面的原因，我们最终还是将此项目开源出来了。
+我们知道此项目今后可能已经没有意义了，但我们依旧希望在 QQ Bot 的历史中留下属于我们的一笔。
+
+抛开 QQ Bot 不谈，此项目所实现的核心逻辑也是值得开源的。所以，我们选择公开此技术。
+
+<div align="right">
+<i>
+
+乐章的第二篇已经落幕，乐章的第三篇又在何处
+
+</i>
+</div>
+
+## Structure
+
+- `/src` KuimiVM 核心
+- `/packer` 打包模块
+- `/tencent` magic-signer server
+- `/struct-define` stub of AndroidQQ.apk
+
+------
+
 # magic-signer-guide
 
 此项目用于解决各种 QQ 机器人框架的 sso sign 和 tlv 加密问题。

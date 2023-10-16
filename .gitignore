@@ -1,0 +1,10 @@
+**/build/
+.idea
+.gradle
+
+run/
+**/debug-sandbox/
+/testbot
+/tencent/src/main/java/tencentlibfekit/BasePath.java
+
+hs_*.log

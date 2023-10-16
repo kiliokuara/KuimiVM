@@ -1,0 +1,17 @@
+name: Push checking CI
+
+on:
+  workflow_dispatch: { }
+  push: { }
+  pull_request: { }
+
+jobs:
+
+  build_and_push:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build the Docker image
+        run: docker build . -t kiliokuara/vivo50:${{ github.sha }} -t kiliokuara/vivo50:latest

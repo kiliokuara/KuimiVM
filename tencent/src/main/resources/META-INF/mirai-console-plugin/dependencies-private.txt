@@ -1,0 +1,13 @@
+org.apache.commons:commons-jexl3:3.2.1
+io.github.karlatemp:unsafe-accessor:1.7.0
+org.ow2.asm:asm-util:9.5
+org.ow2.asm:asm-tree:9.5
+org.ow2.asm:asm-commons:9.5
+
+
+com.github.zhkl0228:unidbg-android:0.9.7
+com.github.zhkl0228:unidbg-unicorn2:0.9.7
+
+
+io.vertx:vertx-web:4.4.4
+com.google.code.gson:gson:2.9.0

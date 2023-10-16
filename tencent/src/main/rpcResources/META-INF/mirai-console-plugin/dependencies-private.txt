@@ -1,0 +1,2 @@
+io.vertx:vertx-web:4.4.4
+com.google.code.gson:gson:2.9.0

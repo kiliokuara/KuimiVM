@@ -1,0 +1,48 @@
+plugins {
+    id 'java'
+    id 'java-library'
+}
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+    // maven { url = "https://repo.mirai.mamoe.net/snapshots" }
+    // maven { url = file('G:\\IDEAProjects\\mirai\\ci-release-helper\\stage-repo').toURI() }
+}
+
+configurations {
+    vertx
+
+    implementation.extendsFrom vertx
+}
+
+test {
+    useJUnitPlatform()
+}
+
+dependencies {
+    api rootProject
+    api 'io.github.karlatemp:unsafe-accessor:1.7.0'
+    // https://mvnrepository.com/artifact/com.google.protobuf/protobuf-java
+    api 'com.google.protobuf:protobuf-java:3.23.2'
+    // https://mvnrepository.com/artifact/com.google.protobuf.nano/protobuf-javanano
+    api 'com.google.protobuf.nano:protobuf-javanano:3.1.0'
+
+    implementation("org.slf4j:slf4j-api:2.0.7")
+    implementation("org.slf4j:slf4j-log4j12:2.0.7")
+
+    // core/pkgsso
+    // gradle :mirai-core:publishAllPublicationsToMiraiStageRepoRepository :mirai-core-api:publishAllPublicationsToMiraiStageRepoRepository :mirai-core-utils:publishAllPublicationsToMiraiStageRepoRepository :mirai-console-compiler-annotations:publishAllPublicationsToMiraiStageRepoRepository :mirai-console:publishAllPublicationsToMiraiStageRepoRepository -Dmirai.target=!android
+
+    def mirai_local_version = "2.15.0"
+    api "net.mamoe:mirai-core:$mirai_local_version"
+    runtimeOnly "net.mamoe:mirai-core:$mirai_local_version"
+    api "net.mamoe:mirai-core-api:$mirai_local_version"
+    implementation "net.mamoe:mirai-core-utils:$mirai_local_version"
+    compileOnly "net.mamoe:mirai-console:$mirai_local_version"
+
+
+    vertx(platform("io.vertx:vertx-stack-depchain:4.4.4"))
+    vertx("io.vertx:vertx-web")
+    vertx('com.google.code.gson:gson:2.9.0')
+}

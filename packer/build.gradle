@@ -1,0 +1,288 @@
+import proguard.gradle.ProGuardTask
+
+plugins {
+    id 'java'
+    id 'java-library'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    api rootProject
+}
+
+public abstract class OurJavaExec extends JavaExec {
+    @Input
+    abstract Property<FileCollection> getOurInput()
+}
+
+TaskProvider<OurJavaExec> createHelperTask(String taskName, String taskType, String fileExt) {
+    return createHelperTask(taskName, taskType, fileExt, null)
+}
+
+TaskProvider<OurJavaExec> createHelperTask(String taskName, String taskType, String fileExt, File outFile) {
+    def doDebug = false
+
+    def rsp = tasks.register(taskName, OurJavaExec.class)
+    rsp.configure { exec ->
+        exec.group = 'package'
+        File finalOutFile
+        if (outFile == null) {
+            finalOutFile = new File(exec.temporaryDir, "result." + fileExt)
+        } else {
+            finalOutFile = outFile
+        }
+        exec.outputs.file(finalOutFile)
+
+        def runtime = sourceSets.main.runtimeClasspath
+        exec.inputs.property('runtime', runtime)
+
+        exec.mainClass.set('packer.HelperTask')
+        exec.classpath = runtime
+        exec.dependsOn(exec.ourInput)
+
+        exec.doFirst {
+            def inputs = exec.ourInput
+            def inputFile = inputs.get().singleFile
+
+            exec.args(taskType, inputFile.absolutePath, finalOutFile.absolutePath)
+            exec.temporaryDir.mkdirs()
+            finalOutFile.parentFile?.mkdirs()
+            exec.workingDir(exec.temporaryDir)
+            exec.environment("PACKER_DEBUG", doDebug.toString())
+        }
+
+    }
+    return rsp
+}
+
+def stuDefine = project(':struct-define')
+def tencent = project(':tencent')
+def projThis = project
+
+tasks.jar.enabled = false
+
+def transformClassStub = createHelperTask("transformClassStub", "StubTransform", "jar")
+
+def packResources = tasks.register('packResources', Zip.class) { task ->
+    task.group = 'package'
+    task.from(rootProject.file('linuxfile')) { into 'linuxfile' }
+
+    task.archiveBaseName.set('resources')
+    task.destinationDir(task.temporaryDir)
+}
+
+def packServiceLoader = createHelperTask("packServiceLoader", "PackServiceLoader", "jar")
+packServiceLoader.configure { exec ->
+    exec.ourInput.set(packResources.get().outputs.files)
+}
+
+def packRpcServiceLoader = createHelperTask("packRpcServiceLoader", "ConvertToRpc", "jar")
+packRpcServiceLoader.configure { exec ->
+    exec.ourInput.set(packServiceLoader.get().outputs.files)
+}
+
+
+def packConsoleJar = tasks.register('packConsoleJar', Jar.class) { task ->
+    task.group = 'package'
+
+    task.from(packResources) { into 'kfc/vivo50/code45'; rename { 'resources.zip' } }
+
+
+    task.archiveBaseName.set('vivo50-kfc-code45')
+}
+
+def packConsoleRpc = tasks.register('packConsoleRpc', Jar.class) { task ->
+
+    task.from(rootProject.file('tencent/src/main/rpcResources')) { CopySpec spec ->
+        spec.duplicatesStrategy(DuplicatesStrategy.INCLUDE)
+    }
+
+    task.inputs.files(packConsoleJar.get().outputs)
+    task.from(zipTree(packConsoleJar.get().outputs.files.singleFile)) {
+        exclude 'kfc/vivo50/code45/ServiceSelector.class'
+        exclude 'kfc/vivo50/code45/resources.zip'
+        duplicatesStrategy(DuplicatesStrategy.EXCLUDE)
+    }
+
+    task.inputs.files(packRpcServiceLoader.get().outputs)
+    task.from(zipTree(packRpcServiceLoader.get().outputs.files.singleFile))
+
+    task.archiveBaseName.set('vivo50-kfc-code45-rpc')
+}
+
+def packServer = tasks.register('packServer', Jar.class) { task ->
+    task.group = 'package'
+
+    task.archiveBaseName.set('server')
+
+    task.manifest.attributes([
+            'Main-Class': 'tencentlibfekit.vmservice.rpc.RpcServerBootstrap',
+    ])
+}
+
+def remapServerJar = createHelperTask("remapServerJar", "SimpleRemapper", "jar", file('build/proguard/server-remap.jar'))
+
+
+projThis.tasks.named('build').configure { it.finalizedBy(':packer:packConsoleJar') }
+projThis.tasks.named('build').configure { it.finalizedBy(':packer:packConsoleRpc') }
+projThis.tasks.named('build').configure { it.finalizedBy(':packer:packServer') }
+projThis.tasks.named('build').configure { it.finalizedBy(':packer:remapServerJar') }
+
+
+stuDefine.afterEvaluate {
+    transformClassStub.configure { exec ->
+        exec.ourInput.set(stuDefine.tasks.getByName('jar').outputs.files)
+    }
+}
+
+tencent.afterEvaluate {
+    def packTencent = { Jar pack ->
+        pack.inputs.files(tencent.tasks.jar.outputs)
+        pack.from(zipTree(tencent.tasks.jar.outputs.files.singleFile)) {
+            exclude 'kfc/vivo50/code45/ServiceSelector.class'
+            exclude 'kfc/vivo50/code45/StubClasses.class'
+        }
+
+        pack.inputs.files(transformClassStub.get().outputs)
+        pack.from(zipTree(transformClassStub.get().outputs.files.singleFile))
+
+        pack.inputs.files(packServiceLoader.get().outputs)
+        pack.from(zipTree(packServiceLoader.get().outputs.files.singleFile))
+    }
+
+    packConsoleJar.configure { packTencent(it) }
+
+    packServer.configure { pack ->
+        pack.inputs.files(packConsoleJar.get().outputs)
+        pack.from(zipTree(packConsoleJar.get().outputs.files.singleFile)) {
+            exclude 'META-INF/mirai-console-plugin/**'
+            exclude 'META-INF/services/net.mamoe.mirai.console.*'
+            exclude 'com/kiliokuara/kuimivm/**'
+        }
+
+        tencent.configurations.runtimeClasspath.files.each { sfile ->
+            var pt = sfile.absolutePath
+            if (pt.contains('mirai-core')) return
+
+            if (sfile.isDirectory()) {
+                pack.from(sfile)
+            } else {
+                pack.from(zipTree(sfile)) {
+                    exclude 'module-info.class'
+                    exclude 'META-INF/versions/9/module-info.class'
+                    exclude 'META-INF/*'
+                }
+            }
+        }
+    }
+
+
+    // proguard
+
+    projThis.tasks.register('buildConsoleRpc', ProGuardTask.class) { pg ->
+        pg.group = 'proguard'
+
+        pg.injars(packConsoleRpc.get().outputs)
+        pg.inputs.files(packConsoleRpc.get().outputs)
+        pg.inputs.files(tencent.configurations.compileClasspath)
+
+        tencent.configurations.compileClasspath.files.each { cp ->
+            if (cp == projThis.file('src/main/resources')) return
+
+            pg.libraryjars(cp)
+        }
+
+        pg.libraryjars "${System.getProperty('java.home')}/jmods/java.base.jmod"
+        pg.libraryjars "${System.getProperty('java.home')}/jmods/java.net.http.jmod"
+
+        pg.verbose()
+        pg.outjars(new File(projThis.buildDir, 'proguard/vivo50-kfc-code45-rpc.jar'))
+        pg.dontwarn()
+        pg.forceprocessing()
+        pg.optimizations('*')
+        pg.optimizationpasses(5)
+
+        pg.keep('class * extends net.mamoe.mirai.console.plugin.jvm.JavaPlugin { static ** INSTANCE; }')
+
+        pg.keepattributes('InnerClasses,Signature,RuntimeVisible*Annotations,EnclosingMethod,*Annotation*')
+    }
+    projThis.tasks.named('build').configure { it.finalizedBy(':packer:buildConsoleRpc') }
+
+
+    def buildServer = projThis.tasks.register('buildServer', ProGuardTask.class) { pg ->
+        pg.group = 'proguard'
+
+        pg.injars(packServer.get().outputs)
+        pg.inputs.files(packServer.get().outputs)
+        pg.inputs.files(tencent.configurations.compileClasspath)
+
+//        tencent.configurations.compileClasspath.files.each { cp ->
+//            if (cp == projThis.file('src/main/resources')) return
+//
+//            pg.libraryjars(cp)
+//        }
+
+        pg.libraryjars "${System.getProperty('java.home')}/jmods/java.base.jmod"
+        pg.libraryjars "${System.getProperty('java.home')}/jmods/java.net.http.jmod"
+        pg.libraryjars "${System.getProperty('java.home')}/jmods/java.desktop.jmod"
+
+        // pg.verbose()
+        pg.outjars(new File(projThis.buildDir, 'proguard/server.jar'))
+        pg.outputs.file(new File(projThis.buildDir, 'proguard/server.jar'))
+
+        pg.dontwarn()
+        pg.dontnote()
+
+        pg.forceprocessing()
+        pg.optimizations('*')
+        pg.optimizationpasses(1)
+
+        pg.keepclasseswithmembers('class **.RpcServerBootstrap { public static void main(java.lang.String[]); }')
+
+        pg.keep('class io.netty.** { *; }')
+        pg.keep('class io.vertx.** { *; }')
+
+        pg.keep('class io.github.karlatemp.unsafeaccessor.** { *; }')
+        pg.keep('class com.sun.jna.** { *; }')
+
+        pg.keep('class com.google.** { *; }')
+        pg.keep('class com.fasterxml.jackson.** { *; }')
+        pg.keepclassmembers('class * { @**.SerializedName <fields>; }')
+
+        pg.keep('class org.apache.** { *; }')
+        pg.keep('class org.slf4j.** { *; }')
+
+        pg.keep('class com.github.unidbg.** { *; }')
+        pg.keep('class com.github.zhkl0228.** { *; }')
+        pg.keep('class de.fearlesstobi.** { *; }')
+        pg.keep('class unicorn.** { *; }')
+        pg.keep('class keystone.** { *; }')
+
+
+        pg.keep('class com.kiliokuara.kuimivm.** { *; }') // stupid ProGuard
+        pg.keepclassmembers('class * { static void initialize(**.KuimiVM,**.KuimiObject); }')
+        pg.keepclassmembers('class * extends com.kiliokuara.kuimivm.KuimiMethod { <methods>; }')
+
+        pg.keep allowobfuscation: true, 'class android.** { *; }'
+        pg.keep allowobfuscation: true, 'class com.tencent.mobileqq.** { *; }'
+
+
+        pg.keepattributes('Signature,RuntimeVisible*Annotations,EnclosingMethod,*Annotation*')
+        pg.flattenpackagehierarchy('kfc')
+    }
+    remapServerJar.configure { exec ->
+        exec.ourInput.set(buildServer.get().outputs.files)
+    }
+
+
+    projThis.tasks.named('build').configure { it.finalizedBy(':packer:buildServer') }
+}
+
+packConsoleJar.configure { pack ->
+    pack.inputs.files(rootProject.tasks.jar.outputs)
+    pack.from(zipTree(rootProject.tasks.jar.outputs.files.singleFile))
+}
+

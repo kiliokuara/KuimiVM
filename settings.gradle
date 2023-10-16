@@ -1,0 +1,5 @@
+rootProject.name = 'kuimivm'
+
+include ':tencent'
+include ':struct-define'
+include ':packer'
